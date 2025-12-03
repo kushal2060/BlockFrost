@@ -20,32 +20,32 @@ def generate_keys(seed: str):
     try:
         hdwallet = HDWallet.from_mnemonic(seed)
         
-        # derive payment key
+        # payment key
         payment_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/0/0")
         payment_private_key = payment_hdwallet.xprivate_key[:32].hex()
         payment_public_key = payment_hdwallet.public_key.hex()
         
-        # derive stake key
+        # stake key
         stake_hdwallet = hdwallet.derive_from_path("m/1852'/1815'/0'/2/0")
         stake_private_key = stake_hdwallet.xprivate_key[:32].hex()
         stake_public_key = stake_hdwallet.public_key.hex()
         
-        # create payment signing and verification keys
+        # payment signing and verification keys
         payment_skey = PaymentSigningKey(bytes.fromhex(payment_private_key))
         payment_vkey = PaymentVerificationKey(bytes.fromhex(payment_public_key))
         
-        # create stake signing and verification keys
+        # stake signing and verification keys
         stake_skey = StakeSigningKey(bytes.fromhex(stake_private_key))
         stake_vkey = StakeVerificationKey(bytes.fromhex(stake_public_key))
         
-        # generate address with both payment and staking parts
+        # address with both payment and staking parts
         payment_address = Address(
             payment_part=payment_vkey.hash(),
             staking_part=stake_vkey.hash(),
             network=Network.TESTNET
         )
         
-        # get cbor hex for storage
+        # bor hex for storage
         payment_skey_cbor_hex = payment_skey.to_cbor_hex()
         stake_skey_cbor_hex = stake_skey.to_cbor_hex()
         
@@ -59,7 +59,7 @@ def generate_keys(seed: str):
         print(f"STAKE_SKEY_CBOR={stake_skey_cbor_hex}")
         print(f"SENDER_ADDRESS={payment_address}")
         
-        # optionally save to files
+        # save to files
         # payment_skey.save(f"{payment_address}_payment.skey")
         # payment_vkey.save(f"{payment_address}_payment.vkey")
         # stake_skey.save(f"{payment_address}_stake.skey")
