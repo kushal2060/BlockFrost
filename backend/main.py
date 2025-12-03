@@ -3,6 +3,10 @@ from pydantic import BaseModel
 from blockfrost import BlockFrostApi, ApiError, ApiUrls
 from pycardano import *
 from fastapi.middleware.cors import CORSMiddleware
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -20,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BLOCKFROST_PROJECT_ID = "preprodWGej2NMZe9tXwxqPCpmaUtiEOZEvGc9m"
+BLOCKFROST_PROJECT_ID = os.getenv("BLOCKFROST_PROJECT_ID")
 api = BlockFrostApi(
     project_id=BLOCKFROST_PROJECT_ID,
     base_url=ApiUrls.preprod.value  # Changed from testnet to preprod
