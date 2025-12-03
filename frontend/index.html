@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Cardano Payroll</title>
+</head>
+<body>
+    <h2>Cardano Payroll</h2>
+
+    <label>Sender Address:</label><br>
+    <input id="sender" size="70" placeholder="addr_test1..."><br><br>
+
+    <label>Recipient Address:</label><br>
+    <input id="receiver" size="70" placeholder="addr_test1..."><br><br>
+
+    <label>Amount (lovelace):</label><br>
+    <input id="amount" value="2000000"><br><br>
+
+    <button onclick="runPayroll()">Send Payroll</button>
+
+    <p id="status"></p>
+
+    <script>
+    window.runPayroll = async function() {
+        const status = document.getElementById("status");
+        const sender = document.getElementById("sender").value;
+        const receiver = document.getElementById("receiver").value;
+        const amount = Number(document.getElementById("amount").value);
+
+        status.innerText = "Building unsigned transaction...";
+
+        try {
+            const res = await fetch("http://localhost:8000/build_tx", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    sender_address: sender,
+                    payroll: [{ address: receiver, lovelace: amount }]
+                })
+            });
+            const json = await res.json();
+            console.log("response",json)
+            const txList = json.cbor_hex;
+
+            status.innerText = "Connecting Eternal Wallet...";
+            //connecting wallet
+            const wallet = await window.cardano.eternl.enable();
+            status.innerText = "Signing transaction...";
+            //signing transaction by wallet and return tx cbor hex
+            const signedTx = await wallet.signTx(txList,true);
+            status.innerText = "Submitting transaction...";
+            //submitting signed transaction to backend
+            try {
+    // Helper function to convert hex string to Uint8Array
+            function hexToUint8Array(hexString) {
+                const bytes = new Uint8Array(hexString.length / 2);
+                for (let i = 0; i < hexString.length; i += 2) {
+                    bytes[i / 2] = parseInt(hexString.substr(i, 2), 16);
+                }
+                return bytes;
+            }
+
+            const submit = await fetch("https://cardano-preprod.blockfrost.io/api/v0/tx/submit", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/cbor",
+                    "project_id": "preprodWGej2NMZe9tXwxqPCpmaUtiEOZEvGc9m"
+                },
+                body: hexToUint8Array(signedTx)
+            });
+
+            if (submit.ok) {
+                const txHash = await submit.text();
+                status.innerText = `Transaction submitted successfully! TxHash: ${txHash}`;
+            } else {
+                const error = await submit.text();
+                status.innerText = `Error: ${error}`;
+            }
+        } catch (error) {
+            status.innerText = `Error submitting transaction: ${error.message}`;
+            console.error(error);
+        }
+        } catch (err) {
+            status.innerText = "Error: " + err.message;
+        }
+    };
+    </script>
+
+</body>
+</html>
