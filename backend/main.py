@@ -1,99 +1,3 @@
-# from fastapi import FastAPI, Request, HTTPException
-# from pydantic import BaseModel
-# from blockfrost import BlockFrostApi, ApiError, ApiUrls
-# from pycardano import *
-# from fastapi.middleware.cors import CORSMiddleware
-# import os
-# from dotenv import load_dotenv
-
-# load_dotenv()
-
-# app = FastAPI()
-
-# origins = [
-#     "http://127.0.0.1:5500",
-#     "http://localhost:5500",
-#     "http://localhost:8000",
-# ]
-
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # use specific origins in production
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-# BLOCKFROST_PROJECT_ID = os.getenv("BLOCKFROST_PROJECT_ID")
-# api = BlockFrostApi(
-#     project_id=BLOCKFROST_PROJECT_ID,
-#     base_url=ApiUrls.preprod.value  # Changed from testnet to preprod
-# )
-
-# class PayRollItem(BaseModel):
-#     address: str
-#     lovelace: int
-
-# class PayRollRequest(BaseModel):
-#     sender_address: str
-#     payroll: list[PayRollItem]
-
-# @app.post("/build_tx")
-# def build_transaction(request: PayRollRequest):
-#     print("Received request:", request.model_dump())
-    
-#     # Strip whitespace from sender address
-#     sender_address = request.sender_address.strip()
-#     sender = Address.from_primitive(sender_address)
-    
-#     # Fetch UTXOs for the sender address
-#     try:
-#         utxos_bf = api.address_utxos(sender_address)
-#     except ApiError as e:
-#         raise HTTPException(status_code=500, detail=f"Failed to fetch UTXOs: {e}")
-    
-#     # Convert BlockFrost UTXOs to pycardano UTXOs
-#     utxos = []
-#     for u in utxos_bf:
-#         tx_in = TransactionInput.from_primitive([u.tx_hash, u.output_index])
-        
-#         # parse amounts from Blockfrost
-#         lovelace = 0
-#         for amt in u.amount:
-#             if amt.unit == "lovelace":
-#                 lovelace = int(amt.quantity)
-        
-#         tx_out = TransactionOutput(sender, Value(lovelace))
-#         utxos.append(UTxO(tx_in, tx_out))
-    
-#     if not utxos:
-#         raise HTTPException(status_code=400, detail="No UTXOs found for sender address")
-    
-#     # Get protocol parameters
-#     pp_response = api.epoch_latest_parameters()
-    
-#     # Create chain context
-#     context = BlockFrostChainContext(BLOCKFROST_PROJECT_ID, base_url=ApiUrls.preprod.value)
-    
-#     # Build transaction
-#     builder = TransactionBuilder(context)
-    
-#     # Add inputs
-#     for utxo in utxos:
-#         builder.add_input(utxo)
-    
-#     # Add outputs from payroll list
-#     for p in request.payroll:
-#         recipient = Address.from_primitive(p.address.strip())
-#         builder.add_output(TransactionOutput(recipient, Value(p.lovelace)))
-    
-#     # Build the unsigned transaction    
-#     unsigned_tx = builder.build_and_sign([], change_address=sender)
-    
-#     # Serialize the transaction to CBOR hex
-#     cbor_hex = unsigned_tx.to_cbor_hex()
-    
-#     return {"cbor_hex": cbor_hex}
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -116,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-BLOCKFROST_PROJECT_ID = "preprodWGej2NMZe9tXwxqPCpmaUtiEOZEvGc9m"
+BLOCKFROST_PROJECT_ID = os.getenv("BLOCKFROST_PROJECT_ID")
 api = BlockFrostApi(
     project_id=BLOCKFROST_PROJECT_ID,
     base_url=ApiUrls.preprod.value
@@ -162,19 +66,19 @@ def build_and_submit_transaction(request: PayRollRequest):
         sender_address = request.sender_address.strip()
         sender = Address.from_primitive(sender_address)
         
-        # CRITICAL: Verify the signing key matches the sender (WITH staking part)
+        # verifyo that the sender address matches the payment and stake keys
         derived_address = Address(
             payment_part=payment_vkey.hash(),
-            staking_part=stake_vkey.hash(),  # ← ADD THIS LINE
+            staking_part=stake_vkey.hash(),  
             network=Network.TESTNET
         )
-        print(f"📍 Sender from request: {sender_address}")
-        print(f"📍 Address from your key: {derived_address}")
+        print(f"Sender from request: {sender_address}")
+        print(f"Address from your key: {derived_address}")
         
         if str(derived_address) != sender_address:
             raise HTTPException(
                 status_code=400,
-                detail=f"❌ ADDRESS MISMATCH!\n"
+                detail=f"ADDRESS MISMATCH!\n"
                        f"Your signing key is for: {derived_address}\n"
                        f"But request sender is: {sender_address}\n"
                        f"Either:\n"
@@ -225,7 +129,7 @@ def build_and_submit_transaction(request: PayRollRequest):
         # Build and SIGN with BOTH payment and stake keys
         print("Signing transaction...")
         signed_tx = builder.build_and_sign(
-            signing_keys=[payment_signing_key, stake_signing_key],  # ← ADD stake key
+            signing_keys=[payment_signing_key, stake_signing_key], 
             change_address=sender
         )
         
@@ -233,9 +137,9 @@ def build_and_submit_transaction(request: PayRollRequest):
         print("Submitting to blockchain...")
         tx_hash = context.submit_tx(signed_tx)
         
-        print(f"✅ Transaction submitted! Hash: {tx_hash}")
+        print(f"Transaction submitted! Hash: {tx_hash}")
         
-        # Wait a moment and try to get transaction info
+        # delay to get block info
         import time
         time.sleep(2)
         
@@ -257,10 +161,10 @@ def build_and_submit_transaction(request: PayRollRequest):
         }
         
     except ApiError as e:
-        print(f"❌ Blockfrost error: {e}")
+        print(f"Blockfrost error: {e}")
         raise HTTPException(status_code=400, detail=f"Blockfrost error: {str(e)}")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/get_tx_info/{tx_hash}")
