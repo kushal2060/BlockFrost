@@ -1,70 +1,92 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel
 from blockfrost import BlockFrostApi, ApiError, ApiUrls
 from pycardano import *
-import json
+from fastapi.middleware.cors import CORSMiddleware
 
+app = FastAPI()
 
-app=FastAPI()
+origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://localhost:8000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # use specific origins in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 BLOCKFROST_PROJECT_ID = "preprodWGej2NMZe9tXwxqPCpmaUtiEOZEvGc9m"
-
-
-api = BlockFrostApi(project_id=BLOCKFROST_PROJECT_ID)
+api = BlockFrostApi(
+    project_id=BLOCKFROST_PROJECT_ID,
+    base_url=ApiUrls.preprod.value  # Changed from testnet to preprod
+)
 
 class PayRollItem(BaseModel):
     address: str
     lovelace: int
 
-
 class PayRollRequest(BaseModel):
     sender_address: str
     payroll: list[PayRollItem]
 
-
 @app.post("/build_tx")
 def build_transaction(request: PayRollRequest):
-    sender_address = request.sender_address
-    sender = Address.from_primitive(sender_address) #Address.from_primitive is a pycardano helper that converts a "primitive" address representation (typically a Bech32 string like "addr1..." or a CBOR-decoded structure) into a pycardano Address object you can use in transactions
-
-    #fetcjh UTXOs for the sender address
+    print("Received request:", request.model_dump())
+    
+    # Strip whitespace from sender address
+    sender_address = request.sender_address.strip()
+    sender = Address.from_primitive(sender_address)
+    
+    # Fetch UTXOs for the sender address
     try:
         utxos_bf = api.address_utxos(sender_address)
     except ApiError as e:
-        return {"error": f"Failed to fetch UTXOs: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Failed to fetch UTXOs: {e}")
     
-    # convert BlockFrost UTXOs to pycardano UTXOs
-    utxos =[]
+    # Convert BlockFrost UTXOs to pycardano UTXOs
+    utxos = []
     for u in utxos_bf:
-        txin = TransactionInput(bytes.fromhex(u.tx_hash),u.output_index)
-        value = Value.from_primitive({None: u.amount[0].quantity}) #assuming only lovelace for simplicity
-        utxos.append(UTxO(input=txin, output=TransactionOutput(sender,value)))
-
-    #protocol parameters
-    pp=api.epoch_latest_parameters()
-
-    builder = TransactionBuilder(
-        network=Network.TESTNET,
-        context=BlockFrostChainContext(BLOCKFROST_PROJECT_ID, base_url=ApiUrls.preprod.value),
-        protocol_parameters=pp
-    )
-    #add inputs
+        tx_in = TransactionInput.from_primitive([u.tx_hash, u.output_index])
+        
+        # parse amounts from Blockfrost
+        lovelace = 0
+        for amt in u.amount:
+            if amt.unit == "lovelace":
+                lovelace = int(amt.quantity)
+        
+        tx_out = TransactionOutput(sender, Value(lovelace))
+        utxos.append(UTxO(tx_in, tx_out))
+    
+    if not utxos:
+        raise HTTPException(status_code=400, detail="No UTXOs found for sender address")
+    
+    # Get protocol parameters
+    pp_response = api.epoch_latest_parameters()
+    
+    # Create chain context
+    context = BlockFrostChainContext(BLOCKFROST_PROJECT_ID, base_url=ApiUrls.preprod.value)
+    
+    # Build transaction
+    builder = TransactionBuilder(context)
+    
+    # Add inputs
     for utxo in utxos:
         builder.add_input(utxo)
-
-    #add outputs from payroll list
+    
+    # Add outputs from payroll list
     for p in request.payroll:
-        builder.add_output(
-            TransactionOutput(
-                Address.from_primitive(p.address),
-                Value(p.lovelace)
-            )
-        )
-
-    #build the unsigned transaction    
-    unsigned_tx = builder.build(change_address=sender)
-
-    #serialize the transaction to CBOR hex
-    cbor_hex = bytes(unsigned_tx.to_cbor())
-
-    return {"unsigned_tx_cbor_hex": cbor_hex.hex()}
+        recipient = Address.from_primitive(p.address.strip())
+        builder.add_output(TransactionOutput(recipient, Value(p.lovelace)))
+    
+    # Build the unsigned transaction    
+    unsigned_tx = builder.build_and_sign([], change_address=sender)
+    
+    # Serialize the transaction to CBOR hex
+    cbor_hex = unsigned_tx.to_cbor_hex()
+    
+    return {"cbor_hex": cbor_hex}
