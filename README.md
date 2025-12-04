@@ -7,7 +7,7 @@ For sending batch payments (multiple recipients) from a single company wallet, s
 
 ## Features
 - Batch payments to multiple recipients in single transaction
-- auto server-side transaction construction, signing and submission (pycardano + Blockfrost) wihtout the need to login and sign  and submit transaction from eslint wallet
+- auto server-side transaction construction, signing and submission (pycardano + Blockfrost) wihtout the need to login and sign  and submit transaction from eternl wallet
 - SQLite persistence of transactions and outputs (history)
 - Frontend UI to manage employees (add/remove), send payroll, and view history
 
@@ -34,7 +34,7 @@ For sending batch payments (multiple recipients) from a single company wallet, s
 
 ## Requirements
 - macOS (dev machine instructions shown)
-- Python 3.11+ (venv recommended)
+- Python 3.11+ (venv recommended) as there was some ssl handshake issues with python 3.11 while working with blockfrost apis.
 - Node / static file server or VSCode Live Server for frontend (or `python -m http.server`)
 
 ---
