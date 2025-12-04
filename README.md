@@ -34,7 +34,7 @@ For sending batch payments (multiple recipients) from a single company wallet, s
 
 ## Requirements
 - macOS (dev machine instructions shown)
-- Python 3.11+ (venv recommended) as there was some ssl handshake issues with python 3.11 while working with blockfrost apis.
+- Python 3.11 (venv recommended) as there was some ssl handshake issues with python 3.13 while working with blockfrost apis.
 - Node / static file server or VSCode Live Server for frontend (or `python -m http.server`)
 
 ---
