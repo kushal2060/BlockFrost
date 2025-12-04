@@ -212,6 +212,98 @@
     </div>
 
     <script>
+    let recipientCount = 1;
+
+    // Show detailed transaction info in a modal/popup
+    async function showTransactionDetails(txHash) {
+        try {
+            const res = await fetch(`http://localhost:8000/get_tx_info/${txHash}`);
+            const txInfo = await res.json();
+            
+            // Create modal content
+            const modalHtml = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 10px; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative;">
+                        <button onclick="closeModal()" style="position: absolute; top: 10px; right: 15px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Close</button>
+                        
+                        <h3>Transaction Details</h3>
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Transaction Hash:</strong><br>
+                            <span style="font-family: monospace; font-size: 12px; word-break: break-all;">${txInfo.tx_hash}</span>
+                        </div>
+                        
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Sender:</strong><br>
+                            <span style="font-family: monospace; font-size: 12px; word-break: break-all;">${txInfo.sender_address || 'N/A'}</span>
+                        </div>
+                        
+                        ${txInfo.block ? `
+                            <div style="margin: 15px 0;">
+                                <strong>Block:</strong> ${txInfo.block}<br>
+                                <strong>Block Height:</strong> ${txInfo.block_height}
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Total Amount:</strong> ${txInfo.total_amount ? (txInfo.total_amount / 1000000).toFixed(2) + ' ADA' : 'N/A'}
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Created:</strong> ${txInfo.created_at ? new Date(txInfo.created_at + 'Z').toLocaleString() : 'N/A'}<br>
+                            ${txInfo.confirmed_at ? `<strong>Confirmed:</strong> ${new Date(txInfo.confirmed_at + 'Z').toLocaleString()}` : ''}
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Data Source:</strong> ${txInfo.source || 'unknown'}
+                        </div>
+                        
+                        ${txInfo.outputs && txInfo.outputs.length > 0 ? `
+                            <div style="margin: 15px 0;">
+                                <strong>Recipients (${txInfo.outputs.length}):</strong>
+                                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px; overflow-x: auto;">
+                                    ${txInfo.outputs.map((output, i) => `
+                                        <div style="margin: 5px 0; padding: 8px; border: 1px solid #e0e0e0; border-radius: 3px; overflow-wrap: break-word;">
+                                            <strong>${i + 1}.</strong> ${(output.lovelace / 1000000).toFixed(2)} ADA<br>
+                                            <span style="font-family: monospace; font-size: 11px; color: #666;">${output.address}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin: 20px 0 0 0; text-align: center;">
+                            <a href="https://preprod.cardanoscan.io/transaction/${txInfo.tx_hash}" target="_blank" 
+                               style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                                View on Explorer
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to page
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'txModal';
+            modalDiv.innerHTML = modalHtml;
+            document.body.appendChild(modalDiv);
+            
+        } catch (error) {
+            alert(`Error fetching transaction details: ${error.message}`);
+        }
+    }
+
+   
+    window.closeModal = function() {
+        const modal = document.getElementById('txModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+
+
     // Default employees 
     let employees = [
         {
@@ -281,14 +373,14 @@
 
         employees.push({ name, address, salary });
 
-    
+        // Clear form
         document.getElementById("newEmployeeName").value = "";
         document.getElementById("newEmployeeAddress").value = "";
         document.getElementById("newEmployeeSalary").value = "5000000";
 
         renderEmployees();
 
-      
+        // Show success message
         const status = document.getElementById("status");
         status.className = "success";
         status.innerText = `Employee "${name}" added successfully!`;
@@ -346,10 +438,10 @@
             if (result.success) {
                 status.className = "success";
                 status.innerHTML = `
-                     Payroll sent successfully!<br>
+                    Payroll sent successfully!<br>
                     <strong>Employees Paid:</strong> ${employees.length}<br>
                     <strong>Total Amount:</strong> ${(totalAmount / 1000000).toFixed(2)} ADA<br>
-                    <strong>TxHash:</strong> <a href="${result.explorer_url}" target="_blank">${result.tx_hash.substring(0, 20)}...</a><br>
+                    <strong>TxHash:</strong> <a href="#" onclick="showTransactionDetails('${result.tx_hash}')" style="color: #007bff; cursor: pointer;">${result.tx_hash.substring(0, 20)}...</a><br>
                     <strong>Status:</strong> Pending confirmation...
                 `;
                 
@@ -359,7 +451,7 @@
                 console.log("Transaction details:", result);
             } else {
                 status.className = "error";
-                status.innerText = ` Error: ${result.detail}`;
+                status.innerText = `Error: ${result.detail}`;
             }
             
         } catch (err) {
@@ -386,6 +478,7 @@
             let html = "";
             for (const tx of data.transactions) {
                 
+                
                 const date = tx.confirmed_at 
                     ? new Date(tx.confirmed_at + 'Z').toLocaleString()
                     : new Date(tx.created_at + 'Z').toLocaleString();
@@ -393,25 +486,27 @@
                 html += `
                     <div class="tx-item">
                         <div>
-                           
+                          
                             <strong style="margin-left: 10px;">${date}</strong>
                         </div>
                         <div class="tx-hash">
                             <strong>Hash:</strong> 
-                            <a href="${tx.explorer_url}" target="_blank">${tx.tx_hash.substring(0, 16)}...</a>
+                            <a href="#" onclick="showTransactionDetails('${tx.tx_hash}')" style="color: #007bff; cursor: pointer;">
+                                ${tx.tx_hash.substring(0, 16)}...
+                            </a>
                         </div>
                         <div>
                             <strong>From:</strong> ${tx.sender_address.substring(0, 30)}...
                         </div>
                         <div>
                             <strong>Total:</strong> ${(tx.total_amount / 1000000).toFixed(2)} ADA
-                            (${tx.receipient_count} employee${tx.receipient_count > 1 ? 's' : ''})
+                            (${tx.recipient_count} employee${tx.recipient_count > 1 ? 's' : ''})
                         </div>
                         ${tx.block_height ? `<div><strong>Block:</strong> ${tx.block_height}</div>` : ''}
                         <div class="tx-outputs">
                             <strong>Employees Paid:</strong>
                             ${tx.outputs.map(o => `
-                                <div>→ <a href="https://preprod.cardanoscan.io/address/${o.address}" target="_blank">${o.address.substring(0, 30)}...</a> 
+                                <div>→ ${o.address.substring(0, 30)}... 
                                     <strong>${(o.lovelace / 1000000).toFixed(2)} ADA</strong>
                                 </div>
                             `).join('')}

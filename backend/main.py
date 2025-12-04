@@ -294,7 +294,7 @@ def get_transaction_info(tx_hash: str):
     conn.row_factory=sqlite3.Row
     c=conn.cursor()
 
-    c.execute('SELECT * FROM payrolls WHERE tx_hash =?',(tx_hash))
+    c.execute('SELECT * FROM payrolls WHERE tx_hash =?',(tx_hash,))
     row = c.fetchone() #just one row
 
     if not row:
@@ -311,6 +311,7 @@ def get_transaction_info(tx_hash: str):
             "source":"blockfrost"
             }
         except ApiError as e:
+            conn.close()
             raise HTTPException(status_code=404, detail="Transaction not found or still pending")
 
     c.execute('SELECT * FROM transaction_output WHERE tx_hash = ?', (tx_hash,))
