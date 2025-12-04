@@ -214,7 +214,7 @@
     <script>
     let recipientCount = 1;
 
-    // Show detailed transaction info in a modal/popup
+    // Show detailed transaction info in a popup
     async function showTransactionDetails(txHash) {
         try {
             const res = await fetch(`http://localhost:8000/get_tx_info/${txHash}`);
@@ -373,14 +373,14 @@
 
         employees.push({ name, address, salary });
 
-        // Clear form
+        
         document.getElementById("newEmployeeName").value = "";
         document.getElementById("newEmployeeAddress").value = "";
         document.getElementById("newEmployeeSalary").value = "5000000";
 
         renderEmployees();
 
-        // Show success message
+        
         const status = document.getElementById("status");
         status.className = "success";
         status.innerText = `Employee "${name}" added successfully!`;
