@@ -230,7 +230,7 @@ def build_and_submit_transaction(request: PayRollRequest):
         #         connection.close()
         #         print(f"Transaction confirmed in block {block_height}")
         # except Exception as e:
-        #     print(f"⚠️ Could not fetch block info yet: {e}")
+        #     print(f"Could not fetch block info yet: {e}")
         #     block_hash = None
         #     block_height = None
         
