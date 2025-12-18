@@ -54,7 +54,7 @@ def generate_keys(seed: str):
         print("\nPayment Address:", payment_address)
         print("\nPayment Public Key:", payment_public_key)
         print("\nStake Public Key:", stake_public_key)
-        print("\n=== Save these in .env ===")
+        print("\nSave these in .env")
         print(f"PAYMENT_SKEY_CBOR={payment_skey_cbor_hex}")
         print(f"STAKE_SKEY_CBOR={stake_skey_cbor_hex}")
         print(f"SENDER_ADDRESS={payment_address}")
