@@ -1,88 +1,604 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Cardano Payroll</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .form-section, .history-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 10px 0;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .tx-item {
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .tx-hash {
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 12px;
+        }
+        .tx-outputs {
+            margin-top: 10px;
+            padding-left: 20px;
+            font-size: 14px;
+        }
+        h2 {
+            color: #333;
+        }
+        .refresh-btn {
+            background-color: #007bff;
+            margin-bottom: 10px;
+        }
+        .refresh-btn:hover {
+            background-color: #0056b3;
+        }
+        .employee-list {
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .employee-item {
+            border: 1px solid #ddd;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .employee-item.editing {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        .employee-info {
+            flex: 1;
+            font-size: 14px;
+        }
+        .employee-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .employee-address {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            margin: 3px 0;
+        }
+        .employee-salary {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .employee-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .edit-btn:hover {
+            background-color: #e0a800;
+        }
+        .remove-btn {
+            background-color: #dc3545;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .remove-btn:hover {
+            background-color: #c82333;
+        }
+        .save-btn {
+            background-color: #28a745;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .save-btn:hover {
+            background-color: #218838;
+        }
+        .cancel-btn {
+            background-color: #6c757d;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+        .add-employee-form {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .add-employee-form input {
+            margin-bottom: 8px;
+        }
+        .add-btn {
+            background-color: #007bff;
+        }
+        .add-btn:hover {
+            background-color: #0056b3;
+        }
+        .send-all-btn {
+            background-color: #28a745;
+            width: 100%;
+            font-size: 18px;
+            padding: 12px;
+        }
+        .send-all-btn:hover {
+            background-color: #218838;
+        }
+        .employee-count {
+            background-color: #17a2b8;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .edit-form input {
+            width: 100%;
+            margin: 3px 0;
+            padding: 5px;
+            font-size: 12px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Cardano Payroll</h2>
+    <h1>Cardano Payroll System</h1>
+    
+    <div class="container">
+        <!-- Employee Management & Payroll -->
+        <div class="form-section">
+            <h2>👥 Employee Payroll</h2>
 
-    <label>Sender Address:</label><br>
-    <input id="sender" size="70" placeholder="addr_test1..."><br><br>
+            <label>Company Wallet Address:</label><br>
+            <input id="sender" value="addr_test1qr960hlmsnkelc5gun0saua898ma2u8ekg50fmqwp9avx88nfk53tax66c5esr6w4a9n2fn7f5kxq8gk7luarp32ekrqn82ttz"><br>
 
-    <label>Recipient Address:</label><br>
-    <input id="receiver" size="70" placeholder="addr_test1..."><br><br>
+            <hr style="margin: 20px 0;">
 
-    <label>Amount (lovelace):</label><br>
-    <input id="amount" value="2000000"><br><br>
+            <!-- Add Employee Form -->
+            <div class="add-employee-form">
+                <h3>➕ Add New Employee</h3>
+                <input id="newEmployeeName" placeholder="Employee Name" type="text">
+                <input id="newEmployeeAddress" placeholder="Wallet Address (addr_test1...)" type="text">
+                <input id="newEmployeeSalary" placeholder="Monthly Salary (lovelace)" type="number" value="5000000">
+                <button class="add-btn" onclick="addEmployee()">Add Employee</button>
+            </div>
 
-    <button onclick="runPayroll()">Send Payroll</button>
+            <hr style="margin: 20px 0;">
 
-    <p id="status"></p>
+            <!-- Employee List -->
+            <div class="employee-count">
+                Total Employees: <span id="employeeCount">0</span>
+            </div>
 
+            <div class="employee-list" id="employeeList"></div>
+
+            <button class="send-all-btn" onclick="sendPayroll()">💰 Send Salaries to All Employees</button>
+
+            <div id="status"></div>
+        </div>
+
+        <!-- Transaction History -->
+        <div class="history-section">
+            <h2>Transaction History</h2>
+            <button class="refresh-btn" onclick="loadHistory()">Refresh</button>
+            <div id="history"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
     <script>
-    window.runPayroll = async function() {
-        const status = document.getElementById("status");
-        const sender = document.getElementById("sender").value;
-        const receiver = document.getElementById("receiver").value;
-        const amount = Number(document.getElementById("amount").value);
+    const API_BASE = window.API_CONFIG ? window.API_CONFIG.BASE_URL : 'http://localhost:8000';
+    
+    let employees = [];
+    let editingIndex = -1;
 
-        status.innerText = "Building unsigned transaction...";
+    // Show detailed transaction info in a popup
+    async function showTransactionDetails(txHash) {
+        try {
+            const res = await fetch(`${API_BASE}/get_tx_info/${txHash}`);
+            const txInfo = await res.json();
+            
+            const modalHtml = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 10px; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative;">
+                        <button onclick="closeModal()" style="position: absolute; top: 10px; right: 15px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕ Close</button>
+                        
+                        <h3>Transaction Details</h3>
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Transaction Hash:</strong><br>
+                            <span style="font-family: monospace; font-size: 12px; word-break: break-all;">${txInfo.tx_hash}</span>
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Sender:</strong><br>
+                            <span style="font-family: monospace; font-size: 12px; word-break: break-all;">${txInfo.sender_address || 'N/A'}</span>
+                        </div>
+                        
+                        ${txInfo.block ? `
+                            <div style="margin: 15px 0;">
+                                <strong>Block:</strong> ${txInfo.block}<br>
+                                <strong>Block Height:</strong> ${txInfo.block_height}
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Total Amount:</strong> ${txInfo.total_amount ? (txInfo.total_amount / 1000000).toFixed(2) + ' ADA' : 'N/A'}
+                        </div>
+                        
+                        <div style="margin: 15px 0;">
+                            <strong>Created:</strong> ${txInfo.created_at ? new Date(txInfo.created_at + 'Z').toLocaleString() : 'N/A'}<br>
+                            ${txInfo.confirmed_at ? `<strong>Confirmed:</strong> ${new Date(txInfo.confirmed_at + 'Z').toLocaleString()}` : ''}
+                        </div>
+                        
+                        ${txInfo.outputs && txInfo.outputs.length > 0 ? `
+                            <div style="margin: 15px 0;">
+                                <strong>Recipients (${txInfo.outputs.length}):</strong>
+                                <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                                    ${txInfo.outputs.map((output, i) => `
+                                        <div style="margin: 5px 0; padding: 8px; border: 1px solid #e0e0e0; border-radius: 3px;">
+                                            <strong>${i + 1}.</strong> ${(output.lovelace / 1000000).toFixed(2)} ADA<br>
+                                            <span style="font-family: monospace; font-size: 11px; color: #666;">${output.address}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div style="margin: 20px 0 0 0; text-align: center;">
+                            <a href="https://preprod.cardanoscan.io/transaction/${txInfo.tx_hash}" target="_blank" 
+                               style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                                View on Explorer
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'txModal';
+            modalDiv.innerHTML = modalHtml;
+            document.body.appendChild(modalDiv);
+            
+        } catch (error) {
+            alert(`Error fetching transaction details: ${error.message}`);
+        }
+    }
+
+    window.closeModal = function() {
+        const modal = document.getElementById('txModal');
+        if (modal) modal.remove();
+    }
+
+    async function loadEmployeesFromDB() {
+        try {
+            const res = await fetch(`${API_BASE}/get_employees`);
+            const data = await res.json();
+            if (data.success) {
+                employees = data.employees;
+                renderEmployees();
+            }
+        } catch (err) {
+            console.error("Error loading employees:", err);
+        }
+    }
+    
+    function renderEmployees() {
+        const listDiv = document.getElementById("employeeList");
+        const countSpan = document.getElementById("employeeCount");
+        
+        countSpan.innerText = employees.length;
+
+        if (employees.length === 0) {
+            listDiv.innerHTML = "<p style='text-align: center; color: #999;'>No employees added yet.</p>";
+            return;
+        }
+
+        let html = "";
+        employees.forEach((emp, index) => {
+            if (editingIndex === index) {
+                html += `
+                    <div class="employee-item editing">
+                        <div class="employee-info edit-form">
+                            <input type="text" id="editName${index}" value="${emp.name}" placeholder="Employee Name">
+                            <input type="text" id="editAddress${index}" value="${emp.address}" placeholder="Wallet Address" readonly>
+                            <input type="number" id="editSalary${index}" value="${emp.salary}" placeholder="Salary (lovelace)">
+                        </div>
+                        <div class="employee-actions">
+                            <button class="save-btn" onclick="saveEmployee(${index})">💾 Save</button>
+                            <button class="cancel-btn" onclick="cancelEdit()">❌ Cancel</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="employee-item">
+                        <div class="employee-info">
+                            <div class="employee-name">👤 ${emp.name}</div>
+                            <div class="employee-address">${emp.address.substring(0, 40)}...</div>
+                            <div class="employee-salary">${(emp.salary / 1000000).toFixed(2)} ADA/month</div>
+                        </div>
+                        <div class="employee-actions">
+                            <button class="edit-btn" onclick="editEmployee(${index})">✏️ Edit</button>
+                            <button class="remove-btn" onclick="removeEmployee(${index})">🗑️ Remove</button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+
+        listDiv.innerHTML = html;
+    }
+
+    function editEmployee(index) {
+        editingIndex = index;
+        renderEmployees();
+    }
+
+    async function saveEmployee(index) {
+        const name = document.getElementById(`editName${index}`).value.trim();
+        const address = document.getElementById(`editAddress${index}`).value.trim();
+        const salary = parseInt(document.getElementById(`editSalary${index}`).value);
+
+        if (!name || !salary || salary <= 0) {
+            alert("Please enter valid employee details");
+            return;
+        }
 
         try {
-            const res = await fetch("http://localhost:8000/build_tx", {
+            const res = await fetch(`${API_BASE}/edit_employee`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, address, salary })
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                employees[index] = { name, address, salary };
+                editingIndex = -1;
+                renderEmployees();
+                showStatus(`Employee "${name}" updated successfully!`, 'success');
+            } else {
+                throw new Error(result.detail || "Failed to update employee");
+            }
+        } catch (err) {
+            alert("Error updating employee: " + err.message);
+        }
+    }
+
+    function cancelEdit() {
+        editingIndex = -1;
+        renderEmployees();
+    }
+
+    async function addEmployee() {
+        const name = document.getElementById("newEmployeeName").value.trim();
+        const address = document.getElementById("newEmployeeAddress").value.trim();
+        const salary = parseInt(document.getElementById("newEmployeeSalary").value);
+
+        if (!name) {
+            alert("Please enter employee name");
+            return;
+        }
+        if (!address || !address.startsWith("addr_test1")) {
+            alert("Please enter a valid Cardano testnet address");
+            return;
+        }
+        if (!salary || salary <= 0) {
+            alert("Please enter a valid salary amount");
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/add_employee`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, address, salary })
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                await loadEmployeesFromDB();
+                document.getElementById("newEmployeeName").value = "";
+                document.getElementById("newEmployeeAddress").value = "";
+                document.getElementById("newEmployeeSalary").value = "5000000";
+                showStatus(`Employee "${name}" added successfully!`, 'success');
+            } else {
+                throw new Error(result.detail || "Failed to add employee");
+            }
+        } catch (err) {
+            alert("Error adding employee: " + err.message);
+        }
+    }
+
+    async function removeEmployee(index) {
+        const emp = employees[index];
+        if (!confirm(`Remove employee "${emp.name}"?`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/delete_employee`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ address: emp.address })
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                await loadEmployeesFromDB();
+                showStatus(`Employee "${emp.name}" removed`, 'success');
+            } else {
+                throw new Error(result.detail || "Failed to remove employee");
+            }
+        } catch (err) {
+            alert("Error removing employee: " + err.message);
+        }
+    }
+
+    async function sendPayroll() {
+        const status = document.getElementById("status");
+        const sender = document.getElementById("sender").value.trim();
+
+        if (employees.length === 0) {
+            showStatus("No employees to pay!", 'error');
+            return;
+        }
+
+        const payroll = employees.map(emp => ({
+            address: emp.address,
+            lovelace: emp.salary
+        }));
+
+        const totalAmount = employees.reduce((sum, emp) => sum + emp.salary, 0);
+
+        status.className = "";
+        status.innerText = `⏳ Sending salaries to ${employees.length} employees (Total: ${(totalAmount / 1000000).toFixed(2)} ADA)...`;
+
+        try {
+            const res = await fetch(`${API_BASE}/build_and_submit_tx`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     sender_address: sender,
-                    payroll: [{ address: receiver, lovelace: amount }]
+                    payroll: payroll
                 })
             });
-            const json = await res.json();
-            console.log("response",json)
-            const txList = json.cbor_hex;
-
-            status.innerText = "Connecting Eternal Wallet...";
-            //connecting wallet
-            const wallet = await window.cardano.eternl.enable();
-            status.innerText = "Signing transaction...";
-            //signing transaction by wallet and return tx cbor hex
-            const signedTx = await wallet.signTx(txList,true);
-            status.innerText = "Submitting transaction...";
-            //submitting signed transaction to backend
-            try {
-    // Helper function to convert hex string to Uint8Array
-            function hexToUint8Array(hexString) {
-                const bytes = new Uint8Array(hexString.length / 2);
-                for (let i = 0; i < hexString.length; i += 2) {
-                    bytes[i / 2] = parseInt(hexString.substr(i, 2), 16);
-                }
-                return bytes;
-            }
-
-            const submit = await fetch("https://cardano-preprod.blockfrost.io/api/v0/tx/submit", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/cbor",
-                    "project_id": "preprodWGej2NMZe9tXwxqPCpmaUtiEOZEvGc9m"
-                },
-                body: hexToUint8Array(signedTx)
-            });
-
-            if (submit.ok) {
-                const txHash = await submit.text();
-                status.innerText = `Transaction submitted successfully! TxHash: ${txHash}`;
+            
+            const result = await res.json();
+            
+            if (result.success) {
+                status.className = "success";
+                status.innerHTML = `
+                    Payroll sent successfully!<br>
+                    <strong>Employees Paid:</strong> ${employees.length}<br>
+                    <strong>Total Amount:</strong> ${(totalAmount / 1000000).toFixed(2)} ADA<br>
+                    <strong>TxHash:</strong> <a href="#" onclick="showTransactionDetails('${result.tx_hash}')" style="color: #007bff; cursor: pointer;">${result.tx_hash.substring(0, 20)}...</a><br>
+                    <strong>Status:</strong> Pending confirmation...
+                `;
+                setTimeout(() => loadHistory(), 2000);
             } else {
-                const error = await submit.text();
-                status.innerText = `Error: ${error}`;
+                showStatus(`Error: ${result.detail}`, 'error');
             }
-        } catch (error) {
-            status.innerText = `Error submitting transaction: ${error.message}`;
-            console.error(error);
-        }
+            
         } catch (err) {
-            status.innerText = "Error: " + err.message;
+            showStatus("Error: " + err.message, 'error');
         }
-    };
+    }
+
+    async function loadHistory() {
+        const history = document.getElementById("history");
+        history.innerHTML = "<p>Loading...</p>";
+
+        try {
+            const res = await fetch(`${API_BASE}/transaction_history`);
+            const data = await res.json();
+            
+            if (data.transactions.length === 0) {
+                history.innerHTML = "<p>No transactions yet.</p>";
+                return;
+            }
+
+            let html = "";
+            for (const tx of data.transactions) {
+                const date = tx.confirmed_at 
+                    ? new Date(tx.confirmed_at + 'Z').toLocaleString()
+                    : new Date(tx.created_at + 'Z').toLocaleString();
+                
+                html += `
+                    <div class="tx-item">
+                        <div><strong>${date}</strong></div>
+                        <div class="tx-hash">
+                            <strong>Hash:</strong> 
+                            <a href="#" onclick="showTransactionDetails('${tx.tx_hash}')" style="color: #007bff; cursor: pointer;">
+                                ${tx.tx_hash.substring(0, 16)}...
+                            </a>
+                        </div>
+                        <div><strong>From:</strong> ${tx.sender_address.substring(0, 30)}...</div>
+                        <div>
+                            <strong>Total:</strong> ${(tx.total_amount / 1000000).toFixed(2)} ADA
+                            (${tx.recipient_count} employee${tx.recipient_count > 1 ? 's' : ''})
+                        </div>
+                        ${tx.block_height ? `<div><strong>Block:</strong> ${tx.block_height}</div>` : ''}
+                        <div class="tx-outputs">
+                            <strong>Employees Paid:</strong>
+                            ${tx.outputs.map(o => `
+                                <div>→ ${o.address.substring(0, 30)}... 
+                                    <strong>${(o.lovelace / 1000000).toFixed(2)} ADA</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            history.innerHTML = html;
+            
+        } catch (err) {
+            history.innerHTML = `<p style="color: red;">Error loading history: ${err.message}</p>`;
+        }
+    }
+
+    function showStatus(message, type) {
+        const status = document.getElementById("status");
+        status.className = type;
+        status.innerText = message;
+        setTimeout(() => status.innerText = "", 3000);
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+        loadEmployeesFromDB();
+        loadHistory();
+    });
     </script>
 
 </body>
