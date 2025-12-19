@@ -49,6 +49,15 @@ def init_database():
               FOREIGN KEY (tx_hash) REFERENCES payrolls(tx_hash)
               )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS EMPLOYEES(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              address TEXT NOT NULL UNIQUE,
+              salary INTEGER NOT NULL,
+              FOREIGN KEY (address) REFERENCES transaction_output(receiver_address)
+              )
+    ''')
     connection.commit()
     connection.close()
 
@@ -89,6 +98,103 @@ class PayRollItem(BaseModel):
 class PayRollRequest(BaseModel):
     sender_address: str
     payroll: list[PayRollItem]
+
+class Employee(BaseModel):
+    name: str
+    address: str
+    salary: int
+
+class EmployeeUpdate(BaseModel):
+    name: str
+    address: str
+    salary: int
+
+class EmployeeDelete(BaseModel):
+    address: str
+
+
+@app.post("/add_employee")
+def add_employee(employee: Employee):
+    """Add employee to database"""
+    connection = sqlite3.connect('payrolls.db')
+    c = connection.cursor()
+
+    try:
+        c.execute('''
+            INSERT INTO employees (name, address, salary)
+            VALUES (?, ?, ?)
+        ''', (employee.name, employee.address, employee.salary))
+        connection.commit()
+        print(f"Employee {employee.name} added successfully")
+        return {"success": True, "message": f"Employee {employee.name} added"}
+    except sqlite3.IntegrityError:
+        return {"success": False, "detail": f"Employee with address {employee.address} already exists"}
+    finally:
+        connection.close()
+
+
+
+@app.get("/get_employees")
+def get_employees():
+    """Get all employees from database"""
+    connection = sqlite3.connect('payrolls.db')
+    connection.row_factory = sqlite3.Row
+    c = connection.cursor()
+
+    c.execute('SELECT * FROM employees ORDER BY name')
+    employees = []
+    for row in c.fetchall():
+        employees.append({
+            "name": row['name'],
+            "address": row['address'],
+            "salary": row['salary']
+        })
+    connection.close()
+    return {"success": True, "employees": employees}
+
+
+
+@app.post("/edit_employee")
+def edit_employee(employee: EmployeeUpdate):
+    """Edit employee details"""
+    connection = sqlite3.connect('payrolls.db')
+    c = connection.cursor()
+
+    c.execute('''
+        UPDATE employees
+        SET name = ?, salary = ?
+        WHERE address = ?
+    ''', (employee.name, employee.salary, employee.address))
+    
+    if c.rowcount == 0:
+        connection.close()
+        return {"success": False, "detail": "Employee not found"}
+    
+    connection.commit()
+    connection.close()
+    print(f"Employee {employee.name} updated successfully")
+    return {"success": True, "message": f"Employee {employee.name} updated"}
+
+
+@app.post("/delete_employee")
+def delete_employee(employee: EmployeeDelete):
+    """Delete employee from database"""
+    connection = sqlite3.connect('payrolls.db')
+    c = connection.cursor()
+
+    c.execute('''
+        DELETE FROM employees
+        WHERE address = ?
+    ''', (employee.address,))
+    
+    if c.rowcount == 0:
+        connection.close()
+        return {"success": False, "detail": "Employee not found"}
+    
+    connection.commit()
+    connection.close()
+    print(f"Employee with address {employee.address} deleted successfully")
+    return {"success": True, "message": "Employee deleted"}
 
 
 def save_transaction(tx_hash:str, sender:str, payroll: List[PayRollItem],block_hash:str=None,block_height:int=None):
